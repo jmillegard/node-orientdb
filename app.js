@@ -5,10 +5,21 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 
-var routes = require('./routes/index');
 var users = require('./routes/users');
 
 var app = express();
+
+var Oriento = require('oriento');
+
+var server = Oriento({
+  host: 'localhost',
+  port: 2424,
+  username: 'root',
+  password: 'root'
+});
+
+var graphDB = server.use('SocialGraph');
+
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -23,7 +34,13 @@ app.use(cookieParser());
 app.use(require('less-middleware')(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', routes);
+// Add graph db to the request object so it can be
+// accessed from user routes file.
+app.use(function(req, res, next) {
+  req.graphDB = graphDB;
+  next();
+});
+
 app.use('/users', users);
 
 // catch 404 and forward to error handler
