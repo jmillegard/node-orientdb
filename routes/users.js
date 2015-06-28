@@ -15,9 +15,8 @@ router.get('/', function(req, res) {
 
 // GET /users/:user_id/
 router.get('/:id/', function(req, res) {
-	console.log(getRID(req));
 	req.graphDB.record.get(getRID(req)).then(function (user) {
-		req.send(user);
+		res.send(user);
 	});
 });
 
@@ -37,15 +36,31 @@ router.get('/:id/disliked_users', function(req, res) {
 	});
 });
 
-
 // POST /users/:user_id/like_user/:other_user_id
-router.post('/users/:user_id/like_user/:other_user_id',
-	function(req, res){
-
+router.post('/:id/like_user/:other_user_id', function(req, res){
+	createRelation(req, 'Like').then(function(edge) {
+		res.send(edge);
 	});
+});
 
-//POST /users/:user_id/dislike_user/:other_user_id
+// POST /users/:user_id/dislike_user/:other_user_id
+router.post('/:id/dislike_user/:other_user_id', function(req, res){
+	createRelation(req, 'Dislike').then(function(edge) {
+		res.send(edge);
+	});
+});
 
+// DELETE /users/:user_id
+// Deleting the vertex automatically deletes all corresponding
+// relation edges.
+router.delete('/:id', function(req, res){
+	req.graphDB.delete('VERTEX')
+	.where('@rid = ' + getRID(req))
+	.one()
+	.then(function (count) {
+  		res.send(count);
+	});
+});
 
 // **********************************************
 // **********************************************
@@ -59,6 +74,13 @@ function getRelationQuery(rid, relation) {
 	return 'SELECT EXPAND( OUT("' + relation + '") ) ' +
 	 	   'FROM User WHERE @rid=' + rid;
 } 
+
+function createRelation(req, type) {
+	return req.graphDB.create('EDGE', type)
+	.from(getRID(req))
+	.to('#' + req.params.other_user_id)
+	.one();
+}
 
 
 module.exports = router;
